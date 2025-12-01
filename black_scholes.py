@@ -41,15 +41,15 @@ def black_scholes_call(
     return call_price
 
 def greeks(current_price, strike_price, risk_free_rate, volatility, time_to_maturity, dividend_yield):
-    d_1, d2 = calculate_d1_d2(current_price, strike_price, risk_free_rate, volatility, time_to_maturity)
+    d_1, d2 = calculate_d1_d2(current_price, strike_price, risk_free_rate, volatility, time_to_maturity, dividend_yield)
     norm_prime_d1 = 1 / (np.sqrt(2 * np.pi)) * np.exp(-0.5 * d_1 ** 2)
-    q = np.exp(-dividend_yield * time_to_maturity)
-    gamma = calculate_gamma(current_price, volatility, time_to_maturity, d_1, norm_prime_d1, q)
-    theta = calculate_theta(current_price, volatility, time_to_maturity, norm_prime_d1, d2, risk_free_rate, strike_price, q)
-    vega = calculate_vega(current_price, time_to_maturity, norm_prime_d1, q)
+    discount_dividend_factor = np.exp(-dividend_yield * time_to_maturity)
+    gamma = calculate_gamma(current_price, volatility, time_to_maturity, d_1, norm_prime_d1, discount_dividend_factor)
+    theta = calculate_theta(current_price, volatility, time_to_maturity, norm_prime_d1, d2, risk_free_rate, strike_price, discount_dividend_factor)
+    vega = calculate_vega(current_price, time_to_maturity, norm_prime_d1, discount_dividend_factor)
 
     data = {
-        'Delta': [d_1 * q],
+        'Delta': [stats.norm.cdf(d_1) * discount_dividend_factor],
         'Gamma': [gamma],
         'Theta': [theta],
         'Vega': [vega]
@@ -76,6 +76,9 @@ if __name__ == "__main__":
     r = 0.05  # Risk-free interest rate (annualized)
     sigma = 0.2  # Volatility (annualized)
     T = 1  # Time to maturity in years
+    q = 0.0  # Dividend yield (annualized)
 
-    price = black_scholes_call(S0, K, r, sigma, T)
+    price = black_scholes_call(S0, K, r, sigma, T, q)
     print(f"Black-Scholes Call Option Price: {price:.2f}")
+    greeks_df = greeks(S0, K, r, sigma, T, q)
+    print(greeks_df.to_markdown(index=False))
